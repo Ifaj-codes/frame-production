@@ -1,0 +1,214 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String   @id @default(uuid())
+  username        String   @unique
+  passwordHash    String
+  role            String   @default("EMPLOYEE") // EMPLOYEE, ADMIN, DEVELOPER
+  fullName        String
+  avatarUrl       String?
+  jobTitle        String   @default("Video Editor")
+  workstationId   String?  // e.g. "WS-01", "WS-EDIT-04"
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  schedules       WorkSchedule[]
+  attendances     AttendanceSession[]
+  breakRequests   BreakRequest[]
+  exitRequests    ExitRequest[]
+  leaveApps       LeaveApplication[]
+  activities      ApplicationActivity[]
+  screenshots     Screenshot[]
+  monthlyScores   MonthlyPerformance[]
+  auditLogs       AuditLog[]
+}
+
+model WorkSchedule {
+  id                  String   @id @default(uuid())
+  userId              String
+  daysOfWeek          String   @default("1,2,3,4,5,6") // Mon-Sat
+  startTime           String   @default("09:00")
+  endTime             String   @default("18:00")
+  gracePeriodMinutes  Int      @default(15)
+  expectedHoursPerDay Float    @default(8.0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AttendanceSession {
+  id                  String   @id @default(uuid())
+  userId              String
+  date                String   // Format: "YYYY-MM-DD"
+  clockInTime         DateTime
+  clockOutTime        DateTime?
+  totalElapsedMinutes Int      @default(0)
+  breakDeductedMins   Int      @default(0)
+  netWorkMinutes      Int      @default(0)
+  status              String   @default("PRESENT") // PRESENT, LATE, HALF_DAY, ON_LEAVE, ABSENT
+  isOfflineRecorded   Boolean  @default(false)
+  clientRecordedAt    DateTime?
+  syncedAt            DateTime @default(now())
+  correctionsHistory  String?  // JSON array of edits
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([date])
+  @@index([userId, date])
+}
+
+model BreakType {
+  id                    String   @id @default(uuid())
+  name                  String   @unique // Breakfast, Lunch, Prayer, Personal, Medical, Custom
+  maxDurationMinutes    Int      @default(30)
+  dailyAllowanceMinutes Int      @default(60)
+  requiresApproval      Boolean  @default(true)
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+
+  requests              BreakRequest[]
+}
+
+model BreakRequest {
+  id                String    @id @default(uuid())
+  userId            String
+  breakTypeId       String
+  targetAdminId     String?
+  status            String    @default("PENDING") // PENDING, APPROVED, REJECTED, OVERDUE, COMPLETED
+  requestedMinutes  Int       @default(15)
+  approvedMinutes   Int?
+  startTime         DateTime?
+  endTime           DateTime?
+  actualDurationMins Int      @default(0)
+  notes             String?
+  decisionReason    String?
+  decidedBy         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  breakType         BreakType @relation(fields: [breakTypeId], references: [id])
+}
+
+model ExitRequest {
+  id                String    @id @default(uuid())
+  userId            String
+  targetAdminId     String?
+  reason            String
+  departureTime     DateTime
+  expectedReturnTime DateTime
+  actualReturnTime  DateTime?
+  status            String    @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  decisionReason    String?
+  decidedBy         String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LeaveApplication {
+  id                String    @id @default(uuid())
+  userId            String
+  assignedAdminId   String?
+  leaveReason       String    // 1 of 12 preset reasons or custom
+  customReason      String?
+  startDate         String    // "YYYY-MM-DD"
+  endDate           String    // "YYYY-MM-DD"
+  description       String?
+  attachmentUrl     String?
+  status            String    @default("PENDING") // PENDING, APPROVED, REJECTED, MORE_INFO_REQUESTED, CANCELLED
+  decisionReason    String?
+  decidedBy         String?
+  internalNotes     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ApplicationActivity {
+  id              String   @id @default(uuid())
+  userId          String
+  appName         String   // e.g. "Adobe Premiere Pro.exe", "AfterFX.exe", "Chrome.exe"
+  windowTitle     String   // e.g. "Project_Final_v3.prproj - Adobe Premiere Pro 2026"
+  startTime       DateTime
+  endTime         DateTime
+  durationSeconds Int      @default(0)
+  isIdle          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+}
+
+model Screenshot {
+  id          String   @id @default(uuid())
+  userId      String
+  storagePath String
+  capturedAt  DateTime @default(now())
+  isViewed    Boolean  @default(false)
+  viewerId    String?
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, capturedAt])
+}
+
+model MonthlyPerformance {
+  id                  String   @id @default(uuid())
+  userId              String
+  monthYear           String   // e.g. "2026-10"
+  scheduledDays       Int      @default(26)
+  presentDays         Int      @default(0)
+  approvedLeaveDays   Int      @default(0)
+  unexcusedAbsences   Int      @default(0)
+  lateArrivals        Int      @default(0)
+  earlyDepartures     Int      @default(0)
+  totalWorkMinutes    Int      @default(0)
+  breakComplianceRate Float    @default(100.0)
+  punctualityRate     Float    @default(100.0)
+  disciplineScore     Float    @default(100.0) // 0-100 scale
+  rank                Int      @default(1)
+  managerNotes        String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, monthYear])
+}
+
+model AppBranding {
+  id              String   @id @default("singleton")
+  appName         String   @default("Frame Production")
+  logoUrl         String   @default("/assets/logo.png")
+  companySubtitle String   @default("Video Editing & Production Agency")
+  breakRulesJson  String?
+  monitoringConfig String? // Idle threshold, capture interval, etc.
+  updatedAt       DateTime @updatedAt
+}
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  actorId        String
+  actorUsername  String
+  action         String   // USER_CREATE, PASSWORD_RESET, LEAVE_APPROVE, BREAK_REJECT, etc.
+  targetResource String   // USER, ATTENDANCE, LEAVE, BRANDING, SETTINGS
+  targetId       String?
+  detailsJson    String?
+  ipAddress      String?
+  timestamp      DateTime @default(now())
+
+  actor          User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  @@index([timestamp])
+}
