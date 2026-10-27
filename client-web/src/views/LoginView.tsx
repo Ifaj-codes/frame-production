@@ -1,84 +1,21 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api";
-import {
-  Lock,
-  User,
-  AlertCircle,
-  ArrowRight,
-  ShieldCheck,
-  Sparkles,
-  Radio,
-  Eye,
-  EyeOff,
-  Volume2,
-  VolumeX,
-  Fingerprint,
-  CheckCircle2,
-  Flame,
-  Activity,
-  Layers
-} from "lucide-react";
+import { Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import brandLogo from "../assets/logo.png";
-import { sound } from "../services/soundEffects";
 
 export const LoginView: React.FC = () => {
   const { login, branding } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [capsLockActive, setCapsLockActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timecode, setTimecode] = useState("");
-  const [soundEnabled, setSoundEnabled] = useState(sound.enabled);
-  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
-  const [latency, setLatency] = useState(14);
-
-  // Mouse-tracking ambient spotlight
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const { clientX, clientY } = e;
-    const { innerWidth, innerHeight } = window;
-    setMousePos({
-      x: Math.round((clientX / innerWidth) * 100),
-      y: Math.round((clientY / innerHeight) * 100)
-    });
-  };
-
-  // SMPTE 24fps timecode simulation
-  useEffect(() => {
-    let frame = 0;
-    const interval = setInterval(() => {
-      const now = new Date();
-      frame = (frame + 1) % 24;
-      const hours = String(now.getHours()).padStart(2, "0");
-      const minutes = String(now.getMinutes()).padStart(2, "0");
-      const seconds = String(now.getSeconds()).padStart(2, "0");
-      const frames = String(frame).padStart(2, "0");
-      setTimecode(`${hours}:${minutes}:${seconds}:${frames}`);
-    }, 1000 / 24);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Periodic latency simulation
-  useEffect(() => {
-    const latInterval = setInterval(() => {
-      setLatency(Math.floor(12 + Math.random() * 6));
-    }, 4000);
-    return () => clearInterval(latInterval);
-  }, []);
-
-  const toggleSound = () => {
-    sound.enabled = !sound.enabled;
-    setSoundEnabled(sound.enabled);
-    if (sound.enabled) sound.playClick(880, 0.04);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    sound.playClick(500, 0.05);
 
     try {
       const res = await api.post("/auth/login", {
@@ -87,205 +24,99 @@ export const LoginView: React.FC = () => {
       });
 
       if (res.data.user.role === "EMPLOYEE") {
-        sound.playError();
-        setError("This console is reserved exclusively for Administrators and the Developer. Production employees must sign in via the Windows Desktop Client.");
+        setError("This portal is exclusively for Administrators and the Developer. Production staff should use the Windows Desktop application.");
         setLoading(false);
         return;
       }
 
-      sound.playChime();
       login(res.data.token, res.data.user, res.data.branding);
     } catch (err: any) {
-      sound.playError();
-      setError(err.response?.data?.error || "Authentication failed. Ensure backend service is reachable.");
+      setError(err.response?.data?.error || "Incorrect username or password. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickLogin = (u: string, p: string) => {
-    sound.playClick(640, 0.03);
+  const setPreset = (u: string, p: string) => {
     setUsername(u);
     setPassword(p);
   };
 
   return (
-    <div
-      onMouseMove={handleMouseMove}
-      className="relative min-h-screen w-full flex flex-col justify-between bg-studio-grid film-grain px-4 py-6 selection:bg-amber-500/30 selection:text-amber-200 overflow-hidden"
-    >
-      {/* Dynamic Cursor Spotlight Overlay */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-300"
-        style={{
-          background: `radial-gradient(750px circle at ${mousePos.x}% ${mousePos.y}%, rgba(245, 158, 11, 0.07) 0%, rgba(99, 102, 241, 0.03) 40%, transparent 80%)`
-        }}
-      />
-
-      {/* Top Official Studio Ticker Header */}
-      <header className="relative z-10 mx-auto w-full max-w-6xl flex items-center justify-between text-xs py-2.5 px-4 rounded-2xl glass-panel border border-white/[0.07] backdrop-blur-xl">
-        <div className="flex items-center space-x-3.5">
-          <div className="flex items-center space-x-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span className="text-[10px] font-mono tracking-widest uppercase text-emerald-400 font-extrabold">
-              DIRECTOR CLOUD: NOMINAL
-            </span>
-          </div>
-
-          <span className="text-zinc-700 hidden sm:inline">•</span>
-
-          <div className="hidden sm:flex items-center space-x-1.5 font-mono text-[10px] text-zinc-400">
-            <Activity className="h-3 w-3 text-cyan-400" />
-            <span>RTT: {latency}ms</span>
-          </div>
-
-          <span className="text-zinc-700 hidden md:inline">•</span>
-
-          <div className="hidden md:flex items-center space-x-1 text-[10px] font-mono text-amber-400/90">
-            <span>ACEScc // DCI-P3 // PRORES 422 HQ</span>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3 font-mono text-[11px] text-zinc-400">
-          <div className="hidden sm:flex items-center space-x-1 text-zinc-500">
-            <span>SMPTE:</span>
-            <span className="rounded-md border border-white/[0.08] bg-zinc-950/90 px-2 py-0.5 text-amber-400 font-bold tracking-widest">
-              {timecode || "00:00:00:00"}
-            </span>
-          </div>
-
-          {/* Audio Haptic Toggle */}
-          <button
-            type="button"
-            onClick={toggleSound}
-            title={soundEnabled ? "Studio Haptic Audio Enabled" : "Audio Muted"}
-            className="flex items-center space-x-1 rounded-lg border border-white/[0.08] bg-zinc-900/90 px-2 py-1 text-zinc-400 hover:text-amber-400 hover:border-amber-500/30 transition text-[10px]"
-          >
-            {soundEnabled ? <Volume2 className="h-3.5 w-3.5 text-amber-400" /> : <VolumeX className="h-3.5 w-3.5 text-zinc-600" />}
-            <span className="hidden sm:inline font-mono">{soundEnabled ? "SFX: ON" : "MUTED"}</span>
-          </button>
+    <div className="min-h-screen w-full flex flex-col justify-between apple-ambient-bg px-4 py-8 selection:bg-amber-400/20 selection:text-amber-200">
+      {/* Top minimal brand bar */}
+      <header className="mx-auto w-full max-w-5xl flex items-center justify-between py-2 text-xs text-zinc-500">
+        <span className="font-medium tracking-tight text-zinc-400">Frame Production Studio</span>
+        <div className="flex items-center space-x-4 text-xs text-zinc-500">
+          <span>Enterprise Workspace</span>
+          <span>•</span>
+          <span className="text-zinc-400">v1.0</span>
         </div>
       </header>
 
-      {/* Center Main Hero & Auth Console */}
-      <main className="relative z-10 mx-auto w-full max-w-[480px] my-auto pt-6 pb-6">
-        {/* Brand Identity with Golden Bezel Halo */}
-        <div className="text-center mb-7 flex flex-col items-center">
-          <div className="relative group mb-3.5 cursor-pointer" onClick={() => sound.playClick(950, 0.04)}>
-            {/* Ambient Gold Radial Halo */}
-            <div className="absolute -inset-3 rounded-3xl bg-gradient-to-r from-amber-500/60 via-yellow-400/30 to-amber-600/60 blur-2xl opacity-75 group-hover:opacity-100 transition duration-700" />
-            
-            {/* Outer Chamfered Bezel */}
-            <div className="relative h-20 w-20 rounded-2xl overflow-hidden border border-amber-400/50 bg-[#090b10] p-1 shadow-2xl shadow-amber-500/30">
-              <img
-                src={brandLogo}
-                alt="Frame Production"
-                className="h-full w-full object-cover rounded-[12px] transform group-hover:scale-105 transition duration-500"
-              />
-            </div>
+      {/* Main Authentication Card */}
+      <main className="mx-auto w-full max-w-[400px] my-auto">
+        <div className="flex flex-col items-center text-center mb-8">
+          {/* Logo with Apple-style squircle and subtle shadow */}
+          <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/[0.08] mb-4 bg-zinc-900 transition-transform duration-300 hover:scale-105">
+            <img
+              src={brandLogo}
+              alt="Frame Production"
+              className="h-full w-full object-cover"
+            />
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center justify-center gap-2">
-            <span className="bg-gradient-to-b from-white via-zinc-100 to-zinc-400 bg-clip-text text-transparent">
-              {branding.appName}
-            </span>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
+            {branding.appName || "Frame Production"}
           </h1>
-
-          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] font-semibold tracking-wider uppercase text-zinc-400 font-mono">
-            <span className="flex items-center gap-1.5 text-amber-400 font-bold">
-              <Radio className="h-3 w-3 animate-pulse text-amber-400" />
-              DIRECTOR DISPATCH
-            </span>
-            <span className="text-zinc-700">•</span>
-            <span className="text-zinc-400">ENTERPRISE EDITION v2.6</span>
-          </div>
+          <p className="mt-1.5 text-sm text-zinc-400 font-normal">
+            Sign in to manage studio attendance & production
+          </p>
         </div>
 
-        {/* Elevated Glassmorphic Console Card */}
-        <div className="glass-panel-elevated rounded-3xl p-6 sm:p-8 backdrop-blur-2xl relative overflow-hidden">
-          {/* Subtle Top Metallic Gold Border Accent */}
-          <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
-
-          {/* Card Header Bar */}
-          <div className="mb-5 flex items-center justify-between border-b border-white/[0.06] pb-3.5">
-            <div>
-              <h2 className="text-sm font-bold tracking-wide text-zinc-100 uppercase font-mono flex items-center gap-1.5">
-                <span>Operator Clearance</span>
-              </h2>
-              <p className="text-[11px] text-zinc-400 mt-0.5">
-                Central Operations, HR & Telemetry Suite
-              </p>
-            </div>
-            <div className="flex items-center space-x-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold text-amber-300 font-mono">
-              <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
-              <span>LEVEL 4 SECURE</span>
-            </div>
-          </div>
-
-          {/* Error Alert Box */}
+        {/* Apple-grade glass card */}
+        <div className="apple-glass rounded-2xl p-7 shadow-2xl">
           {error && (
-            <div className="mb-5 flex items-start space-x-2.5 rounded-xl border border-red-500/30 bg-red-950/40 p-3.5 text-xs text-red-300 backdrop-blur-md animate-fadeIn">
+            <div className="mb-5 flex items-start space-x-2.5 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-400" />
-              <span className="leading-relaxed font-medium">{error}</span>
+              <span className="leading-relaxed">{error}</span>
             </div>
           )}
 
-          {/* Authentication Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 font-mono">
-                  Operator Identifier
-                </label>
-                <span className="text-[10px] text-zinc-500 font-mono">LDAP / SSO ACTIVE</span>
-              </div>
-              <div className="relative group">
-                <User className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-zinc-500 group-focus-within:text-amber-400 transition" />
-                <input
-                  type="text"
-                  required
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. admin_ops or developer"
-                  className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/70 py-3 pl-10 pr-4 text-xs text-zinc-100 placeholder-zinc-500 focus:border-amber-500/60 focus:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition duration-200"
-                />
-              </div>
+              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+                Username
+              </label>
+              <input
+                type="text"
+                required
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="username"
+                className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/50 px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amber-400 focus:bg-zinc-950 focus:outline-none focus:ring-1 focus:ring-amber-400/30 transition duration-150"
+              />
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 font-mono">
-                  Passkey Seal
+                <label className="block text-xs font-medium text-zinc-300">
+                  Password
                 </label>
-                {capsLockActive ? (
-                  <span className="text-[10px] text-amber-400 font-bold font-mono animate-pulse">
-                    ⚠ CAPS LOCK ON
-                  </span>
-                ) : (
-                  <span className="text-[10px] text-zinc-500 font-mono">BCRYPT 10-ROUNDS</span>
-                )}
               </div>
-              <div className="relative group">
-                <Lock className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-zinc-500 group-focus-within:text-amber-400 transition" />
+              <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onKeyUp={(e) => setCapsLockActive(e.getModifierState("CapsLock"))}
                   placeholder="••••••••••••"
-                  className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/70 py-3 pl-10 pr-11 text-xs text-zinc-100 placeholder-zinc-500 focus:border-amber-500/60 focus:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition duration-200 font-mono"
+                  className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/50 px-3.5 py-2.5 pr-10 text-sm text-white placeholder-zinc-500 focus:border-amber-400 focus:bg-zinc-950 focus:outline-none focus:ring-1 focus:ring-amber-400/30 transition duration-150"
                 />
                 <button
                   type="button"
-                  onClick={() => {
-                    sound.playClick(700, 0.02);
-                    setShowPassword(!showPassword);
-                  }}
-                  className="absolute right-3.5 top-3 text-zinc-500 hover:text-zinc-300 transition"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300 transition"
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -293,114 +124,75 @@ export const LoginView: React.FC = () => {
               </div>
             </div>
 
-            {/* Premium Gold CTA with Light Sweep Shimmer */}
             <button
               type="submit"
               disabled={loading}
-              className="group relative mt-3 flex w-full items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 py-3.5 text-xs font-black uppercase tracking-wider text-zinc-950 shadow-xl shadow-amber-500/25 hover:shadow-amber-500/40 hover:brightness-105 active:scale-[0.99] transition-all duration-200 overflow-hidden disabled:opacity-50"
+              className="mt-2 flex w-full items-center justify-center space-x-2 rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-black hover:bg-amber-300 active:scale-[0.99] transition duration-150 disabled:opacity-50"
             >
-              {/* Shimmer sweep bar */}
-              <div className="pointer-events-none absolute inset-0 w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 animate-sweep" />
-
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-950 border-t-transparent" />
-                  AUTHENTICATING OPERATOR...
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+                  Signing in...
                 </span>
               ) : (
                 <>
-                  <span>INITIALIZE STUDIO CONSOLE</span>
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                  <span>Sign In</span>
+                  <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Quick Access Role Switcher */}
-          <div className="mt-6 border-t border-white/[0.06] pt-4.5">
-            <div className="flex items-center justify-between text-[11px] mb-2.5">
-              <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-zinc-400 font-mono text-[10px]">
-                <Fingerprint className="h-3.5 w-3.5 text-amber-400" />
-                <span>Preset Clearance Switcher</span>
-              </span>
-              <span className="text-[9px] text-zinc-500 font-mono">1-CLICK POPULATE</span>
-            </div>
+          {/* Understated role presets (iOS style clean pills) */}
+          <div className="mt-6 pt-5 border-t border-white/[0.06]">
+            <span className="block text-[11px] font-medium text-zinc-400 mb-2.5">
+              Quick access demo accounts
+            </span>
 
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
+            <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 type="button"
-                onClick={() => handleQuickLogin("developer", "DevPass@2026")}
-                className="group flex flex-col text-left rounded-xl border border-amber-500/30 bg-amber-500/[0.06] p-2.5 hover:bg-amber-500/[0.14] hover:border-amber-500/60 transition duration-150"
+                onClick={() => setPreset("developer", "DevPass@2026")}
+                className="rounded-xl border border-white/[0.06] bg-zinc-900/60 p-2 text-left hover:border-amber-400/40 hover:bg-zinc-800/80 transition"
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className="font-extrabold text-amber-300">Developer</span>
-                  <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono font-bold">
-                    ROOT
-                  </span>
-                </div>
-                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">@developer</span>
+                <div className="font-semibold text-zinc-200">Developer</div>
+                <div className="text-[11px] text-zinc-500">developer</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickLogin("admin_ops", "AdminPass@2026")}
-                className="group flex flex-col text-left rounded-xl border border-cyan-500/30 bg-cyan-500/[0.06] p-2.5 hover:bg-cyan-500/[0.14] hover:border-cyan-500/60 transition duration-150"
+                onClick={() => setPreset("admin_ops", "AdminPass@2026")}
+                className="rounded-xl border border-white/[0.06] bg-zinc-900/60 p-2 text-left hover:border-amber-400/40 hover:bg-zinc-800/80 transition"
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className="font-extrabold text-cyan-300">Admin (Ops)</span>
-                  <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-cyan-400/20 text-cyan-300 font-mono font-bold">
-                    DISPATCH
-                  </span>
-                </div>
-                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">@admin_ops</span>
+                <div className="font-semibold text-zinc-200">Admin (Ops)</div>
+                <div className="text-[11px] text-zinc-500">admin_ops</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickLogin("admin_hr", "AdminPass@2026")}
-                className="group flex flex-col text-left rounded-xl border border-purple-500/30 bg-purple-500/[0.06] p-2.5 hover:bg-purple-500/[0.14] hover:border-purple-500/60 transition duration-150"
+                onClick={() => setPreset("admin_hr", "AdminPass@2026")}
+                className="rounded-xl border border-white/[0.06] bg-zinc-900/60 p-2 text-left hover:border-amber-400/40 hover:bg-zinc-800/80 transition"
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className="font-extrabold text-purple-300">Admin (HR)</span>
-                  <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-400/20 text-purple-300 font-mono font-bold">
-                    PEOPLE
-                  </span>
-                </div>
-                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">@admin_hr</span>
+                <div className="font-semibold text-zinc-200">Admin (HR)</div>
+                <div className="text-[11px] text-zinc-500">admin_hr</div>
               </button>
 
               <button
                 type="button"
-                onClick={() => handleQuickLogin("admin_lead", "AdminPass@2026")}
-                className="group flex flex-col text-left rounded-xl border border-emerald-500/30 bg-emerald-500/[0.06] p-2.5 hover:bg-emerald-500/[0.14] hover:border-emerald-500/60 transition duration-150"
+                onClick={() => setPreset("admin_lead", "AdminPass@2026")}
+                className="rounded-xl border border-white/[0.06] bg-zinc-900/60 p-2 text-left hover:border-amber-400/40 hover:bg-zinc-800/80 transition"
               >
-                <div className="flex items-center justify-between w-full">
-                  <span className="font-extrabold text-emerald-300">Lead Editor</span>
-                  <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-400/20 text-emerald-300 font-mono font-bold">
-                    SUITE
-                  </span>
-                </div>
-                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">@admin_lead</span>
+                <div className="font-semibold text-zinc-200">Lead Editor</div>
+                <div className="text-[11px] text-zinc-500">admin_lead</div>
               </button>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Official Bottom Studio Governance Ticker */}
-      <footer className="relative z-10 mx-auto w-full max-w-6xl py-2.5 px-4 rounded-xl glass-panel border border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] font-mono text-zinc-500 backdrop-blur-md">
-        <div className="flex items-center space-x-2">
-          <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-          <span>FRAME PRODUCTION STUDIO ENGINE // HIGH-THROUGHPUT RELATIONAL PERSISTENCE</span>
-        </div>
-
-        <div className="flex items-center space-x-3 text-zinc-400">
-          <span>ZERO-KEYLOGGER GUARANTEE</span>
-          <span>•</span>
-          <span>TLS 1.3 ENCRYPTED</span>
-          <span>•</span>
-          <span className="text-amber-400 font-semibold">17 WORKSTATIONS ACTIVE</span>
-        </div>
+      {/* Understated Apple-style footer */}
+      <footer className="mx-auto w-full max-w-5xl py-4 text-center text-xs text-zinc-600">
+        <p>Copyright © 2026 Frame Production Inc. All rights reserved.</p>
       </footer>
     </div>
   );
