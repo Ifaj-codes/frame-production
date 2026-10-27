@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { LogOut, Shield, User, Menu, Clock, Wifi } from "lucide-react";
+import brandLogo from "../assets/logo.png";
 
 interface NavbarProps {
   onToggleSidebar: () => void;
@@ -37,12 +38,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onToggleSidebar, activeTabTitle 
             <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-amber-500/40 to-yellow-500/20 blur-sm opacity-60 group-hover:opacity-100 transition" />
             <div className="relative flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden border border-amber-500/40 bg-zinc-950 shadow-md">
               <img
-                src={branding.logoUrl || "/logo.png"}
+                src={brandLogo}
                 alt="Logo"
                 className="h-full w-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = "none";
-                }}
               />
             </div>
           </div>

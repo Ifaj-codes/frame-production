@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api";
 import { Lock, User, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Radio } from "lucide-react";
+import brandLogo from "../assets/logo.png";
 
 export const LoginView: React.FC = () => {
   const { login, branding } = useAuth();
@@ -55,7 +56,7 @@ export const LoginView: React.FC = () => {
             <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-amber-500/40 via-yellow-500/20 to-amber-600/40 blur-md opacity-75 group-hover:opacity-100 transition duration-500" />
             <div className="relative h-16 w-16 rounded-2xl overflow-hidden border border-amber-500/40 bg-zinc-950 p-0.5 shadow-2xl shadow-amber-500/20">
               <img
-                src={branding.logoUrl || "/logo.png"}
+                src={brandLogo}
                 alt="Frame Production"
                 className="h-full w-full object-cover rounded-[14px]"
               />

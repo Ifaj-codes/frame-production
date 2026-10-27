@@ -31,7 +31,7 @@ interface AuthContextType {
 
 const defaultBranding: Branding = {
   appName: "Frame Production",
-  logoUrl: "/assets/logo.png",
+  logoUrl: "/logo.png",
   companySubtitle: "Video Editing & Production Agency"
 };
 
