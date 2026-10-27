@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const metaEnv = (import.meta as any).env;
-export const API_BASE_URL = metaEnv?.VITE_API_URL || "http://localhost:5000/api";
+export const API_BASE_URL = metaEnv?.VITE_API_URL || "https://awards-went-humanity-rio.trycloudflare.com/api";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

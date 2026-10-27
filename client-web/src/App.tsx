@@ -32,7 +32,10 @@ export const App: React.FC = () => {
 
     let ws: WebSocket | null = null;
     try {
-      ws = new WebSocket("ws://localhost:5000/ws");
+      const wsUrl = window.location.protocol === "https:"
+        ? "wss://awards-went-humanity-rio.trycloudflare.com/ws"
+        : "ws://localhost:5000/ws";
+      ws = new WebSocket(wsUrl);
       ws.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
@@ -102,7 +105,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-950 overflow-hidden">
+    <div className="flex h-screen w-full bg-[#08090d] bg-studio-grid overflow-hidden text-zinc-100">
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
