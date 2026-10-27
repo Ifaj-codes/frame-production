@@ -352,6 +352,46 @@ router.post("/:id/correct", requireAuth, requireAdmin, async (req: AuthRequest, 
   }
 });
 
+// POST /api/attendance/manual-create - Admin records a missed punch
+router.post("/manual-create", requireAuth, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { userId, date, clockInTime, clockOutTime, status, reason } = req.body;
+    if (!userId || !date || !clockInTime) {
+      res.status(400).json({ error: "User, date, and clock in time are required" });
+      return;
+    }
+    const inTime = new Date(clockInTime);
+    const outTime = clockOutTime ? new Date(clockOutTime) : null;
+    let totalElapsedMinutes = 0;
+    if (outTime) {
+      totalElapsedMinutes = Math.max(0, Math.round((outTime.getTime() - inTime.getTime()) / (1000 * 60)));
+    }
+    const session = await prisma.attendanceSession.create({
+      data: {
+        userId,
+        date,
+        clockInTime: inTime,
+        clockOutTime: outTime,
+        totalElapsedMinutes,
+        netWorkMinutes: totalElapsedMinutes,
+        status: status || "PRESENT",
+        isOfflineRecorded: false,
+        correctionsHistory: JSON.stringify([{
+          correctedBy: req.user!.username,
+          correctedAt: new Date().toISOString(),
+          reason: reason || "Manual punch entered by administrator"
+        }])
+      },
+      include: { user: true }
+    });
+    await createAuditLog(req.user!.id, req.user!.username, "ATTENDANCE_MANUAL_CREATE", "ATTENDANCE", session.id, { userId, date }, req.ip as string);
+    res.json({ success: true, message: "Manual attendance record created", session });
+  } catch (error) {
+    console.error("Manual attendance create error:", error);
+    res.status(500).json({ error: "Failed to create attendance session" });
+  }
+});
+
 // GET /api/attendance/export - CSV Export
 router.get("/export", requireAuth, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
   try {

@@ -228,4 +228,103 @@ router.post("/:id/end", requireAuth, async (req: AuthRequest, res: Response): Pr
   }
 });
 
+// GET /api/breaks/active - Admin view currently active ongoing breaks
+router.get("/active", requireAuth, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const active = await prisma.breakRequest.findMany({
+      where: {
+        status: "APPROVED",
+        startTime: { not: null },
+        endTime: null
+      },
+      include: {
+        user: { select: { id: true, fullName: true, username: true, workstationId: true } },
+        breakType: true
+      },
+      orderBy: { startTime: "asc" }
+    });
+    res.json(active);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch active breaks" });
+  }
+});
+
+// GET /api/breaks/history - Admin view recent break history
+router.get("/history", requireAuth, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const history = await prisma.breakRequest.findMany({
+      where: {
+        status: { in: ["COMPLETED", "OVERDUE", "REJECTED"] }
+      },
+      include: {
+        user: { select: { id: true, fullName: true, username: true, workstationId: true } },
+        breakType: true
+      },
+      orderBy: { createdAt: "desc" },
+      take: 40
+    });
+    res.json(history);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch break history" });
+  }
+});
+
+// POST /api/breaks/:id/force-end - Admin forces end to an overdue break
+router.post("/:id/force-end", requireAuth, requireAdmin, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const id = req.params.id as string;
+    const breakReq = await prisma.breakRequest.findUnique({ where: { id } });
+
+    if (!breakReq || !breakReq.startTime || breakReq.endTime) {
+      res.status(400).json({ error: "Break is not currently active" });
+      return;
+    }
+
+    const now = new Date();
+    const elapsedMs = now.getTime() - new Date(breakReq.startTime).getTime();
+    const actualDurationMins = Math.max(1, Math.round(elapsedMs / (1000 * 60)));
+    const isOverdue = breakReq.approvedMinutes ? actualDurationMins > breakReq.approvedMinutes : false;
+
+    const updated = await prisma.breakRequest.update({
+      where: { id },
+      data: {
+        endTime: now,
+        actualDurationMins,
+        status: isOverdue ? "OVERDUE" : "COMPLETED"
+      }
+    });
+
+    const today = now.toISOString().split("T")[0];
+    const session = await prisma.attendanceSession.findFirst({
+      where: { userId: breakReq.userId, date: today, clockOutTime: null }
+    });
+
+    if (session) {
+      const newDeducted = session.breakDeductedMins + actualDurationMins;
+      const netWork = Math.max(0, session.totalElapsedMinutes - newDeducted);
+      await prisma.attendanceSession.update({
+        where: { id: session.id },
+        data: {
+          breakDeductedMins: newDeducted,
+          netWorkMinutes: netWork
+        }
+      });
+    }
+
+    broadcast("BREAK_ENDED", {
+      breakId: id,
+      userId: breakReq.userId,
+      actualDurationMins,
+      isOverdue,
+      forcedByAdmin: req.user!.username
+    });
+
+    await createAuditLog(req.user!.id, req.user!.username, "BREAK_FORCE_END", "BREAK", id, { employeeId: breakReq.userId, actualDurationMins }, req.ip as string);
+
+    res.json({ success: true, message: "Break ended by supervisor", breakRequest: updated });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to force end break" });
+  }
+});
+
 export default router;
