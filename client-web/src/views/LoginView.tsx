@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api";
-import { Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
+import { Lock, User, AlertCircle, ArrowRight, ShieldCheck, Sparkles, Radio } from "lucide-react";
 import brandLogo from "../assets/logo.png";
 
 export const LoginView: React.FC = () => {
   const { login, branding } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,60 +23,79 @@ export const LoginView: React.FC = () => {
       });
 
       if (res.data.user.role === "EMPLOYEE") {
-        setError("This portal is exclusively for Administrators and the Developer. Production staff should use the Windows Desktop application.");
+        setError("This dashboard is exclusively for Administrators and the Developer. Employees must use the Windows Desktop Application.");
         setLoading(false);
         return;
       }
 
       login(res.data.token, res.data.user, res.data.branding);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Incorrect username or password. Please try again.");
+      setError(err.response?.data?.error || "Invalid username or password. Check network connection.");
     } finally {
       setLoading(false);
     }
   };
 
-  const setPreset = (u: string, p: string) => {
+  const handleQuickLogin = (u: string, p: string) => {
     setUsername(u);
     setPassword(p);
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-between apple-ambient-bg px-4 py-8 selection:bg-amber-400/20 selection:text-amber-200">
-      {/* Top minimal brand bar */}
-      <header className="mx-auto w-full max-w-5xl flex items-center justify-between py-2 text-xs text-zinc-500">
-        <span className="font-medium tracking-tight text-zinc-400">Frame Production Studio</span>
-        <div className="flex items-center space-x-4 text-xs text-zinc-500">
-          <span>Enterprise Workspace</span>
-          <span>•</span>
-          <span className="text-zinc-400">v1.0</span>
-        </div>
-      </header>
+    <div className="relative min-h-screen w-full flex items-center justify-center bg-studio-grid px-4 py-12 selection:bg-amber-500/30 selection:text-amber-200 overflow-hidden">
+      {/* Cinematic ambient background orbs */}
+      <div className="pointer-events-none absolute -top-32 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-gradient-to-b from-amber-500/15 via-amber-600/5 to-transparent blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-0 left-10 h-72 w-72 rounded-full bg-indigo-500/10 blur-[100px]" />
+      <div className="pointer-events-none absolute top-1/3 right-10 h-80 w-80 rounded-full bg-amber-400/5 blur-[120px]" />
 
-      {/* Main Authentication Card */}
-      <main className="mx-auto w-full max-w-[400px] my-auto">
-        <div className="flex flex-col items-center text-center mb-8">
-          {/* Logo with Apple-style squircle and subtle shadow */}
-          <div className="h-16 w-16 rounded-2xl overflow-hidden shadow-2xl shadow-black/80 border border-white/[0.08] mb-4 bg-zinc-900 transition-transform duration-300 hover:scale-105">
-            <img
-              src={brandLogo}
-              alt="Frame Production"
-              className="h-full w-full object-cover"
-            />
+      <div className="relative z-10 w-full max-w-[440px]">
+        {/* Brand Identity Header */}
+        <div className="text-center mb-8 flex flex-col items-center">
+          <div className="relative group mb-4">
+            {/* Ambient gold halo */}
+            <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-amber-500/40 via-yellow-500/20 to-amber-600/40 blur-md opacity-75 group-hover:opacity-100 transition duration-500" />
+            <div className="relative h-16 w-16 rounded-2xl overflow-hidden border border-amber-500/40 bg-zinc-950 p-0.5 shadow-2xl shadow-amber-500/20">
+              <img
+                src={brandLogo}
+                alt="Frame Production"
+                className="h-full w-full object-cover rounded-[14px]"
+              />
+            </div>
           </div>
 
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            {branding.appName || "Frame Production"}
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center justify-center gap-2">
+            <span>{branding.appName}</span>
           </h1>
-          <p className="mt-1.5 text-sm text-zinc-400 font-normal">
-            Sign in to manage studio attendance & production
-          </p>
+
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] font-medium tracking-wide uppercase text-zinc-400">
+            <span className="flex items-center gap-1.5 text-amber-400/90 font-semibold">
+              <Radio className="h-3 w-3 animate-pulse text-amber-400" />
+              Studio Gateway
+            </span>
+            <span className="text-zinc-600">•</span>
+            <span className="text-zinc-400">Cloud Management Suite</span>
+          </div>
         </div>
 
-        {/* Apple-grade glass card */}
-        <div className="apple-glass rounded-2xl p-7 shadow-2xl">
+        {/* Elevated Glassmorphism Card */}
+        <div className="glass-panel-elevated rounded-2xl p-6 sm:p-8 backdrop-blur-2xl">
+          <div className="mb-6 flex items-center justify-between border-b border-white/[0.06] pb-4">
+            <div>
+              <h2 className="text-sm font-semibold tracking-wide text-zinc-100">
+                Authorized Sign In
+              </h2>
+              <p className="text-[11px] text-zinc-400 mt-0.5">
+                Operations, HR & Developer Central Console
+              </p>
+            </div>
+            <div className="flex items-center space-x-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-300">
+              <ShieldCheck className="h-3 w-3 text-amber-400" />
+              <span>RBAC v2.4</span>
+            </div>
+          </div>
+
           {error && (
-            <div className="mb-5 flex items-start space-x-2.5 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-xs text-red-300">
+            <div className="mb-5 flex items-start space-x-2.5 rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-xs text-red-300 backdrop-blur-md animate-fadeIn">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-400" />
               <span className="leading-relaxed">{error}</span>
             </div>
@@ -85,115 +103,137 @@ export const LoginView: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
                 Username
               </label>
-              <input
-                type="text"
-                required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="username"
-                className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/50 px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amber-400 focus:bg-zinc-950 focus:outline-none focus:ring-1 focus:ring-amber-400/30 transition duration-150"
-              />
+              <div className="relative group">
+                <User className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-amber-400 transition" />
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="e.g. admin_ops or developer"
+                  className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/60 py-2.5 pl-10 pr-3.5 text-xs text-zinc-100 placeholder-zinc-500 focus:border-amber-500/60 focus:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition duration-200"
+                />
+              </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-zinc-300">
+                <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
                   Password
                 </label>
+                <span className="text-[10px] text-zinc-500 font-mono">Bcrypt Hash Sealed</span>
               </div>
-              <div className="relative">
+              <div className="relative group">
+                <Lock className="pointer-events-none absolute left-3.5 top-3 h-4 w-4 text-zinc-500 group-focus-within:text-amber-400 transition" />
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/50 px-3.5 py-2.5 pr-10 text-sm text-white placeholder-zinc-500 focus:border-amber-400 focus:bg-zinc-950 focus:outline-none focus:ring-1 focus:ring-amber-400/30 transition duration-150"
+                  className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/60 py-2.5 pl-10 pr-3.5 text-xs text-zinc-100 placeholder-zinc-500 focus:border-amber-500/60 focus:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition duration-200 font-mono"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300 transition"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
               </div>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="mt-2 flex w-full items-center justify-center space-x-2 rounded-xl bg-amber-400 py-2.5 text-sm font-semibold text-black hover:bg-amber-300 active:scale-[0.99] transition duration-150 disabled:opacity-50"
+              className="group relative mt-2 flex w-full items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 py-3 text-xs font-bold text-zinc-950 shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:brightness-105 transition-all duration-200 active:scale-[0.99] disabled:opacity-50"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
-                  Signing in...
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-zinc-950 border-t-transparent" />
+                  Verifying Credentials...
                 </span>
               ) : (
                 <>
-                  <span>Sign In</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <span>Sign In to Studio Console</span>
+                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                 </>
               )}
             </button>
           </form>
 
-          {/* Understated role presets (iOS style clean pills) */}
-          <div className="mt-6 pt-5 border-t border-white/[0.06]">
-            <span className="block text-[11px] font-medium text-zinc-400 mb-2.5">
-              Quick access demo accounts
-            </span>
+          {/* Quick Access Badges for Seeded Roles */}
+          <div className="mt-6 border-t border-white/[0.06] pt-5">
+            <div className="flex items-center justify-between text-[11px] mb-2.5">
+              <span className="flex items-center gap-1.5 font-semibold text-zinc-400">
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                <span>Instant Seed Switcher</span>
+              </span>
+              <span className="text-[10px] text-zinc-500 font-mono">1-Click AutoFill</span>
+            </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-2 text-[11px]">
               <button
                 type="button"
-                onClick={() => setPreset("developer", "DevPass@2026")}
-                className="rounded-xl border border-white/[0.06] bg-zinc-900/60 p-2 text-left hover:border-amber-400/40 hover:bg-zinc-800/80 transition"
+                onClick={() => handleQuickLogin("developer", "DevPass@2026")}
+                className="group flex flex-col text-left rounded-xl border border-amber-500/30 bg-amber-500/[0.07] p-2.5 hover:bg-amber-500/[0.14] hover:border-amber-500/50 transition duration-150"
               >
-                <div className="font-semibold text-zinc-200">Developer</div>
-                <div className="text-[11px] text-zinc-500">developer</div>
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-bold text-amber-300">Developer</span>
+                  <span className="text-[9px] uppercase tracking-wider px-1 rounded bg-amber-400/20 text-amber-300 font-mono">ROOT</span>
+                </div>
+                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">@developer</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setPreset("admin_ops", "AdminPass@2026")}
-                className="rounded-xl border border-white/[0.06] bg-zinc-900/60 p-2 text-left hover:border-amber-400/40 hover:bg-zinc-800/80 transition"
+                onClick={() => handleQuickLogin("admin_ops", "AdminPass@2026")}
+                className="group flex flex-col text-left rounded-xl border border-cyan-500/30 bg-cyan-500/[0.07] p-2.5 hover:bg-cyan-500/[0.14] hover:border-cyan-500/50 transition duration-150"
               >
-                <div className="font-semibold text-zinc-200">Admin (Ops)</div>
-                <div className="text-[11px] text-zinc-500">admin_ops</div>
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-bold text-cyan-300">Admin (Ops)</span>
+                  <span className="text-[9px] uppercase tracking-wider px-1 rounded bg-cyan-400/20 text-cyan-300 font-mono">OPS</span>
+                </div>
+                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">@admin_ops</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setPreset("admin_hr", "AdminPass@2026")}
-                className="rounded-xl border border-white/[0.06] bg-zinc-900/60 p-2 text-left hover:border-amber-400/40 hover:bg-zinc-800/80 transition"
+                onClick={() => handleQuickLogin("admin_hr", "AdminPass@2026")}
+                className="group flex flex-col text-left rounded-xl border border-purple-500/30 bg-purple-500/[0.07] p-2.5 hover:bg-purple-500/[0.14] hover:border-purple-500/50 transition duration-150"
               >
-                <div className="font-semibold text-zinc-200">Admin (HR)</div>
-                <div className="text-[11px] text-zinc-500">admin_hr</div>
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-bold text-purple-300">Admin (HR)</span>
+                  <span className="text-[9px] uppercase tracking-wider px-1 rounded bg-purple-400/20 text-purple-300 font-mono">LEAVES</span>
+                </div>
+                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">@admin_hr</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setPreset("admin_lead", "AdminPass@2026")}
-                className="rounded-xl border border-white/[0.06] bg-zinc-900/60 p-2 text-left hover:border-amber-400/40 hover:bg-zinc-800/80 transition"
+                onClick={() => handleQuickLogin("admin_lead", "AdminPass@2026")}
+                className="group flex flex-col text-left rounded-xl border border-emerald-500/30 bg-emerald-500/[0.07] p-2.5 hover:bg-emerald-500/[0.14] hover:border-emerald-500/50 transition duration-150"
               >
-                <div className="font-semibold text-zinc-200">Lead Editor</div>
-                <div className="text-[11px] text-zinc-500">admin_lead</div>
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-bold text-emerald-300">Lead Editor</span>
+                  <span className="text-[9px] uppercase tracking-wider px-1 rounded bg-emerald-400/20 text-emerald-300 font-mono">SUITE</span>
+                </div>
+                <span className="text-[10px] text-zinc-400 font-mono mt-0.5">@admin_lead</span>
               </button>
             </div>
           </div>
         </div>
-      </main>
 
-      {/* Understated Apple-style footer */}
-      <footer className="mx-auto w-full max-w-5xl py-4 text-center text-xs text-zinc-600">
-        <p>Copyright © 2026 Frame Production Inc. All rights reserved.</p>
-      </footer>
+        {/* Global Footer info */}
+        <div className="mt-6 text-center space-y-1">
+          <p className="text-[11px] font-medium text-zinc-500">
+            Protected by Frame Production Server-Side Authorization Engine
+          </p>
+          <div className="flex items-center justify-center gap-3 text-[10px] text-zinc-600 font-mono">
+            <span>TLS 1.3</span>
+            <span>•</span>
+            <span>ZERO KEYLOGGING POLICY</span>
+            <span>•</span>
+            <span>SHA-256</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
