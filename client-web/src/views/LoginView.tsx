@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api";
 import {
@@ -11,20 +11,39 @@ import {
   Radio,
   Eye,
   EyeOff,
-  Cpu,
+  Volume2,
+  VolumeX,
   Fingerprint,
-  CheckCircle2
+  CheckCircle2,
+  Flame,
+  Activity,
+  Layers
 } from "lucide-react";
 import brandLogo from "../assets/logo.png";
+import { sound } from "../services/soundEffects";
 
 export const LoginView: React.FC = () => {
   const { login, branding } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLockActive, setCapsLockActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [timecode, setTimecode] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(sound.enabled);
+  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const [latency, setLatency] = useState(14);
+
+  // Mouse-tracking ambient spotlight
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const { innerWidth, innerHeight } = window;
+    setMousePos({
+      x: Math.round((clientX / innerWidth) * 100),
+      y: Math.round((clientY / innerHeight) * 100)
+    });
+  };
 
   // SMPTE 24fps timecode simulation
   useEffect(() => {
@@ -41,10 +60,25 @@ export const LoginView: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Periodic latency simulation
+  useEffect(() => {
+    const latInterval = setInterval(() => {
+      setLatency(Math.floor(12 + Math.random() * 6));
+    }, 4000);
+    return () => clearInterval(latInterval);
+  }, []);
+
+  const toggleSound = () => {
+    sound.enabled = !sound.enabled;
+    setSoundEnabled(sound.enabled);
+    if (sound.enabled) sound.playClick(880, 0.04);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+    sound.playClick(500, 0.05);
 
     try {
       const res = await api.post("/auth/login", {
@@ -53,13 +87,16 @@ export const LoginView: React.FC = () => {
       });
 
       if (res.data.user.role === "EMPLOYEE") {
+        sound.playError();
         setError("This console is reserved exclusively for Administrators and the Developer. Production employees must sign in via the Windows Desktop Client.");
         setLoading(false);
         return;
       }
 
+      sound.playChime();
       login(res.data.token, res.data.user, res.data.branding);
     } catch (err: any) {
+      sound.playError();
       setError(err.response?.data?.error || "Authentication failed. Ensure backend service is reachable.");
     } finally {
       setLoading(false);
@@ -67,50 +104,79 @@ export const LoginView: React.FC = () => {
   };
 
   const handleQuickLogin = (u: string, p: string) => {
+    sound.playClick(640, 0.03);
     setUsername(u);
     setPassword(p);
   };
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col justify-between bg-studio-grid film-grain px-4 py-8 selection:bg-amber-500/30 selection:text-amber-200 overflow-hidden">
-      {/* Cinematic Ambient Multi-Color Light Halos */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-gradient-to-b from-amber-500/18 via-amber-600/5 to-transparent blur-[140px]" />
-      <div className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-indigo-600/10 blur-[130px]" />
-      <div className="pointer-events-none absolute top-1/2 -right-32 h-96 w-96 rounded-full bg-amber-400/8 blur-[130px]" />
+    <div
+      onMouseMove={handleMouseMove}
+      className="relative min-h-screen w-full flex flex-col justify-between bg-studio-grid film-grain px-4 py-6 selection:bg-amber-500/30 selection:text-amber-200 overflow-hidden"
+    >
+      {/* Dynamic Cursor Spotlight Overlay */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-300"
+        style={{
+          background: `radial-gradient(750px circle at ${mousePos.x}% ${mousePos.y}%, rgba(245, 158, 11, 0.07) 0%, rgba(99, 102, 241, 0.03) 40%, transparent 80%)`
+        }}
+      />
 
       {/* Top Official Studio Ticker Header */}
-      <header className="relative z-10 mx-auto w-full max-w-5xl flex items-center justify-between text-xs py-2 border-b border-white/[0.06] backdrop-blur-md">
-        <div className="flex items-center space-x-3">
+      <header className="relative z-10 mx-auto w-full max-w-6xl flex items-center justify-between text-xs py-2.5 px-4 rounded-2xl glass-panel border border-white/[0.07] backdrop-blur-xl">
+        <div className="flex items-center space-x-3.5">
           <div className="flex items-center space-x-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
             </span>
-            <span className="text-[10px] font-mono tracking-widest uppercase text-emerald-400 font-bold">
-              SYS STATUS: OPERATIONAL
+            <span className="text-[10px] font-mono tracking-widest uppercase text-emerald-400 font-extrabold">
+              DIRECTOR CLOUD: NOMINAL
             </span>
           </div>
-          <span className="text-zinc-600 hidden sm:inline">•</span>
-          <span className="text-[10px] font-mono text-zinc-400 hidden sm:inline">
-            CLUSTER: PROD-DIRECTOR-01
-          </span>
+
+          <span className="text-zinc-700 hidden sm:inline">•</span>
+
+          <div className="hidden sm:flex items-center space-x-1.5 font-mono text-[10px] text-zinc-400">
+            <Activity className="h-3 w-3 text-cyan-400" />
+            <span>RTT: {latency}ms</span>
+          </div>
+
+          <span className="text-zinc-700 hidden md:inline">•</span>
+
+          <div className="hidden md:flex items-center space-x-1 text-[10px] font-mono text-amber-400/90">
+            <span>ACEScc // DCI-P3 // PRORES 422 HQ</span>
+          </div>
         </div>
 
         <div className="flex items-center space-x-3 font-mono text-[11px] text-zinc-400">
-          <span className="text-zinc-500 hidden sm:inline">SMPTE TC:</span>
-          <span className="rounded-md border border-white/[0.08] bg-zinc-950/80 px-2.5 py-0.5 text-amber-400 font-semibold tracking-widest shadow-inner">
-            {timecode || "00:00:00:00"}
-          </span>
+          <div className="hidden sm:flex items-center space-x-1 text-zinc-500">
+            <span>SMPTE:</span>
+            <span className="rounded-md border border-white/[0.08] bg-zinc-950/90 px-2 py-0.5 text-amber-400 font-bold tracking-widest">
+              {timecode || "00:00:00:00"}
+            </span>
+          </div>
+
+          {/* Audio Haptic Toggle */}
+          <button
+            type="button"
+            onClick={toggleSound}
+            title={soundEnabled ? "Studio Haptic Audio Enabled" : "Audio Muted"}
+            className="flex items-center space-x-1 rounded-lg border border-white/[0.08] bg-zinc-900/90 px-2 py-1 text-zinc-400 hover:text-amber-400 hover:border-amber-500/30 transition text-[10px]"
+          >
+            {soundEnabled ? <Volume2 className="h-3.5 w-3.5 text-amber-400" /> : <VolumeX className="h-3.5 w-3.5 text-zinc-600" />}
+            <span className="hidden sm:inline font-mono">{soundEnabled ? "SFX: ON" : "MUTED"}</span>
+          </button>
         </div>
       </header>
 
       {/* Center Main Hero & Auth Console */}
-      <main className="relative z-10 mx-auto w-full max-w-[460px] my-auto pt-6 pb-8">
+      <main className="relative z-10 mx-auto w-full max-w-[480px] my-auto pt-6 pb-6">
         {/* Brand Identity with Golden Bezel Halo */}
-        <div className="text-center mb-8 flex flex-col items-center">
-          <div className="relative group mb-4">
+        <div className="text-center mb-7 flex flex-col items-center">
+          <div className="relative group mb-3.5 cursor-pointer" onClick={() => sound.playClick(950, 0.04)}>
             {/* Ambient Gold Radial Halo */}
-            <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-amber-500/50 via-yellow-400/25 to-amber-600/50 blur-xl opacity-70 group-hover:opacity-100 transition duration-700" />
+            <div className="absolute -inset-3 rounded-3xl bg-gradient-to-r from-amber-500/60 via-yellow-400/30 to-amber-600/60 blur-2xl opacity-75 group-hover:opacity-100 transition duration-700" />
             
             {/* Outer Chamfered Bezel */}
             <div className="relative h-20 w-20 rounded-2xl overflow-hidden border border-amber-400/50 bg-[#090b10] p-1 shadow-2xl shadow-amber-500/30">
@@ -128,13 +194,13 @@ export const LoginView: React.FC = () => {
             </span>
           </h1>
 
-          <div className="mt-2 flex items-center justify-center gap-2 text-[11px] font-semibold tracking-wider uppercase text-zinc-400 font-mono">
+          <div className="mt-1.5 flex items-center justify-center gap-2 text-[11px] font-semibold tracking-wider uppercase text-zinc-400 font-mono">
             <span className="flex items-center gap-1.5 text-amber-400 font-bold">
               <Radio className="h-3 w-3 animate-pulse text-amber-400" />
-              DIRECTOR GATEWAY
+              DIRECTOR DISPATCH
             </span>
             <span className="text-zinc-700">•</span>
-            <span className="text-zinc-400">ENTERPRISE EDITION</span>
+            <span className="text-zinc-400">ENTERPRISE EDITION v2.6</span>
           </div>
         </div>
 
@@ -144,10 +210,10 @@ export const LoginView: React.FC = () => {
           <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-400/60 to-transparent" />
 
           {/* Card Header Bar */}
-          <div className="mb-6 flex items-center justify-between border-b border-white/[0.06] pb-4">
+          <div className="mb-5 flex items-center justify-between border-b border-white/[0.06] pb-3.5">
             <div>
-              <h2 className="text-sm font-bold tracking-wide text-zinc-100 uppercase font-mono">
-                Operator Clearance
+              <h2 className="text-sm font-bold tracking-wide text-zinc-100 uppercase font-mono flex items-center gap-1.5">
+                <span>Operator Clearance</span>
               </h2>
               <p className="text-[11px] text-zinc-400 mt-0.5">
                 Central Operations, HR & Telemetry Suite
@@ -155,7 +221,7 @@ export const LoginView: React.FC = () => {
             </div>
             <div className="flex items-center space-x-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold text-amber-300 font-mono">
               <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
-              <span>LEVEL 4 AUTH</span>
+              <span>LEVEL 4 SECURE</span>
             </div>
           </div>
 
@@ -174,7 +240,7 @@ export const LoginView: React.FC = () => {
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 font-mono">
                   Operator Identifier
                 </label>
-                <span className="text-[10px] text-zinc-500 font-mono">LDAP / INTERNAL</span>
+                <span className="text-[10px] text-zinc-500 font-mono">LDAP / SSO ACTIVE</span>
               </div>
               <div className="relative group">
                 <User className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-zinc-500 group-focus-within:text-amber-400 transition" />
@@ -194,7 +260,13 @@ export const LoginView: React.FC = () => {
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-300 font-mono">
                   Passkey Seal
                 </label>
-                <span className="text-[10px] text-zinc-500 font-mono">BCRYPT 10-ROUNDS</span>
+                {capsLockActive ? (
+                  <span className="text-[10px] text-amber-400 font-bold font-mono animate-pulse">
+                    ⚠ CAPS LOCK ON
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-zinc-500 font-mono">BCRYPT 10-ROUNDS</span>
+                )}
               </div>
               <div className="relative group">
                 <Lock className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-zinc-500 group-focus-within:text-amber-400 transition" />
@@ -203,12 +275,16 @@ export const LoginView: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onKeyUp={(e) => setCapsLockActive(e.getModifierState("CapsLock"))}
                   placeholder="••••••••••••"
                   className="w-full rounded-xl border border-white/[0.08] bg-zinc-950/70 py-3 pl-10 pr-11 text-xs text-zinc-100 placeholder-zinc-500 focus:border-amber-500/60 focus:bg-zinc-950 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition duration-200 font-mono"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => {
+                    sound.playClick(700, 0.02);
+                    setShowPassword(!showPassword);
+                  }}
                   className="absolute right-3.5 top-3 text-zinc-500 hover:text-zinc-300 transition"
                   tabIndex={-1}
                 >
@@ -241,13 +317,13 @@ export const LoginView: React.FC = () => {
           </form>
 
           {/* Quick Access Role Switcher */}
-          <div className="mt-6 border-t border-white/[0.06] pt-5">
+          <div className="mt-6 border-t border-white/[0.06] pt-4.5">
             <div className="flex items-center justify-between text-[11px] mb-2.5">
               <span className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-zinc-400 font-mono text-[10px]">
                 <Fingerprint className="h-3.5 w-3.5 text-amber-400" />
-                <span>Preset Studio Clearance</span>
+                <span>Preset Clearance Switcher</span>
               </span>
-              <span className="text-[9px] text-zinc-500 font-mono">1-CLICK DISPATCH</span>
+              <span className="text-[9px] text-zinc-500 font-mono">1-CLICK POPULATE</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-[11px]">
@@ -312,18 +388,18 @@ export const LoginView: React.FC = () => {
       </main>
 
       {/* Official Bottom Studio Governance Ticker */}
-      <footer className="relative z-10 mx-auto w-full max-w-5xl py-3 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] font-mono text-zinc-500">
+      <footer className="relative z-10 mx-auto w-full max-w-6xl py-2.5 px-4 rounded-xl glass-panel border border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] font-mono text-zinc-500 backdrop-blur-md">
         <div className="flex items-center space-x-2">
           <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-          <span>FRAME PRODUCTION STUDIO ENGINE // BUILD 2026.10</span>
+          <span>FRAME PRODUCTION STUDIO ENGINE // HIGH-THROUGHPUT RELATIONAL PERSISTENCE</span>
         </div>
 
         <div className="flex items-center space-x-3 text-zinc-400">
           <span>ZERO-KEYLOGGER GUARANTEE</span>
           <span>•</span>
-          <span>FIPS 140-2 READY</span>
+          <span>TLS 1.3 ENCRYPTED</span>
           <span>•</span>
-          <span className="text-amber-400/90 font-semibold">ALL 17 EDITORIAL SUITES LINKED</span>
+          <span className="text-amber-400 font-semibold">17 WORKSTATIONS ACTIVE</span>
         </div>
       </footer>
     </div>

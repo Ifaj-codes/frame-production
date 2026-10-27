@@ -17,12 +17,14 @@ import { AccountManagementView } from "./views/AccountManagementView";
 import { BrandingSettingsView } from "./views/BrandingSettingsView";
 import { AuditLogsView } from "./views/AuditLogsView";
 import { SystemHealthView } from "./views/SystemHealthView";
+import { CommandPalette } from "./components/CommandPalette";
 import { api } from "./api";
 
 export const App: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [isSidebarOpenMobile, setIsSidebarOpenMobile] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [pendingCounts, setPendingCounts] = useState({ breaks: 0, leaves: 0, exits: 0 });
 
@@ -123,6 +125,7 @@ export const App: React.FC = () => {
         <Navbar
           onToggleSidebar={() => setIsSidebarOpenMobile(!isSidebarOpenMobile)}
           activeTabTitle={selectedProfileId ? "Employee Profile" : getTabTitle(activeTab)}
+          onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
@@ -157,6 +160,16 @@ export const App: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Global Command Palette Omnibar */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setSelectedProfileId(null);
+        }}
+      />
     </div>
   );
 };
